@@ -1,0 +1,2 @@
+bin_PROGRAMS = amarok_now_playing
+amarok_now_playing_SOURCES = amarok_now_playing
