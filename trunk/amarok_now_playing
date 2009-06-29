@@ -1,0 +1,106 @@
+#!/bin/bash
+#===================================================================================
+#
+#         FILE: amarok_now_playing
+#
+#        USAGE: amarok_now_playing [ > logfile]
+#
+# DESCRIPTION: Changes your status message in pidgin and/or
+#               Kopete to the song you are currently listening to in Amarok.
+#
+#      OPTIONS: see function ’usage’ below
+# REQUIREMENTS: --- Amarok 1.4.10, purple-remote, Pidgin 2.5.2 or Kopete 0.70.2
+#         BUGS: ---
+#        NOTES: ---
+#       AUTHOR: Arthur Buliva, arthurbuliva@gmail.com
+#      COMPANY: Mobile Planet Limited
+#      VERSION: 1.0
+#      CREATED: 26.05.2009 - 16:17:51
+#     REVISION: 12.06.2009 - 11:37:36
+#===================================================================================
+
+STARTUP="dcop amarok player version"
+ALLOWED_AMAROK_VERSION="1.4"
+ALLOWED_KOPETE_VERSION="0.70"
+PIDGIN="`kopete --version`"
+
+MESSAGES=(
+"Amarok is Quiet"
+"Amarok. Rediscover music!"
+"Amarok 2.1 'Let There Be Light' released"
+"Discover what Amarok has to offer at http://amarok.kde.org/"
+"Be free with KDE. http://www.kde.org/"
+)
+
+#Test for Amarok
+echo -n "Checking Amarok version... "
+a=`$STARTUP`
+if [[ "$a" =~ "${ALLOWED_AMAROK_VERSION}" ]]
+then
+    echo "Amarok $a [ OK ] "
+else
+    echo -n $a;tput setaf 1;tput bold;echo -n "     [ FAILED ] ";tput sgr0;echo "Make sure that you are running Amarok 1.4 | `date +%b-%d-%Y\ %T` ";
+    logger "$0 failed to start. Detected Amarok $a but requires Amarok 1.4"
+    exit;
+fi
+
+
+#Test for Kopete
+echo -n "Checking Kopete version... "
+if [[ "$PIDGIN" =~ "${ALLOWED_KOPETE_VERSION}" ]]
+then
+    echo "Kopete $PIDGIN [ OK ] "
+else
+  echo -n $a;tput setaf 1;tput bold;echo -ne "\nERROR: ";tput sgr0;echo "This script has been tested on Kopete 0.70 only | `date +%b-%d-%Y\ %T` "
+  logger "$0 failed to start. Detected Kopete $PIDGIN but requires Kopete 0.70"
+  exit
+fi
+
+updateStatus()
+{
+
+    if [[ "`$STARTUP`" != "" ]]
+    then
+
+    SONG_TITLE="dcop amarok player title"
+    ARTIST="dcop amarok player artist"
+
+    KOPETE_STATUS='qdbus org.kde.kopete /Kopete'
+    
+    if [[ "`$KOPETE_STATUS`" == "" ]]
+    then
+	tput setaf 1;tput bold;echo -n "ERROR: ";tput sgr0;echo "Kopete is not running. This script will terminate | `date +%b-%d-%Y\ %T` "
+	logger "$0 terminated because Kopete is not running"
+	exit
+    fi
+
+    if [[ "`$SONG_TITLE`" != "" ]]
+    then
+	TITLE="♫ `$SONG_TITLE` by `$ARTIST`";
+	echo "INFO: Now listening to ♫ `$SONG_TITLE` by `$ARTIST` `date +%b-%d-%Y`";
+	logger "$0 Now listening to ♫ `$SONG_TITLE` by `$ARTIST`";
+	#Pidgin
+	#`/usr/bin/purple-remote "setstatus?status=available&message=$TITLE"`
+	#Kopete
+	qdbus org.kde.kopete /Kopete  org.kde.Kopete.setIdentityOnlineStatus "Online" "$TITLE"
+	sleep 10;
+	updateStatus
+    else
+	TITLE=${MESSAGES[ $[ ( $RANDOM % 5 )  + 1 ] - 1  ])};
+	echo "INFO: Amarok is quiet. Message: $TITLE `date +%b-%d-%Y`";
+	#Pidgin
+	#`/usr/bin/purple-remote "setstatus?status=available&message=$TITLE"`
+	#Kopete
+	qdbus org.kde.kopete /Kopete  org.kde.Kopete.setIdentityOnlineStatus "Online" "$TITLE"
+	sleep 30;
+	updateStatus
+    fi
+
+    else
+	tput setaf 1;tput bold;echo -n "ERROR: ";tput sgr0;echo "Could not connect to DCOP Server | `date +%b-%d-%Y` "
+	logger "$0 Could not connect to DCOP Server"
+	exit
+    fi
+}
+
+updateStatus

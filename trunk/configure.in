@@ -1,0 +1,5 @@
+AC_INIT(amarok_now_playing)
+AM_INIT_AUTOMAKE(amarok_now_playing,1.4)
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_OUTPUT(Makefile)
